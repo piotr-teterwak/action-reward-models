@@ -1,0 +1,15 @@
+# Training (training/llamafactory/*.yaml) — env "lf_arm" on SCC, Sep 2026.
+# LLaMA-Factory installed FROM SOURCE (pip release lags qwen3_5 support):
+#   git clone https://github.com/hiyouga/LLaMA-Factory && pip install -e .
+# GOTCHA: pip may resolve a torchaudio built for a different CUDA than your
+# torch (silent ABI mismatch) — install torch/torchaudio from the SAME cuXXX
+# index before LLaMA-Factory.
+torch==2.13.0
+transformers==5.8.0
+peft==0.18.1
+trl==0.24.0
+accelerate==1.11.0
+safetensors>=0.8
+pillow>=11
+# era-1 custom BT trainer (training/custom_bt/train_reward.py) additionally
+# just needs torch+transformers+peft above.

@@ -1,0 +1,5 @@
+# Data generation (data_generation/*) — CPU-side scripts.
+# Candidate sampling talks to a served actor (vLLM/sglang) over HTTP.
+openai>=2.6          # teacher Batch API + served-actor client
+pillow>=11
+numpy

@@ -1,0 +1,12 @@
+# Inference (selection_infer.py / scalar_infer.py / scalar_server.py)
+# Verified working combo (env "vllm_owrl" on SCC, Sep 2026).
+# transformers must have qwen3_5 arch support (>=5.x); 4.57.x is TOO OLD.
+torch==2.11.0
+transformers==5.14.1
+peft>=0.18
+safetensors>=0.8
+accelerate>=1.11
+openai>=2.6
+pillow>=11
+# serving the selection ARM only:
+vllm==0.26.0
