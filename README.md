@@ -129,6 +129,16 @@ out); `run_train_reward*.qsub` show the exact env/args used, and
 - The scalar value head rides OUTSIDE the adapter weights — always ship
   `value_head.{safetensors,pt}` next to the LoRA (both HF repos do).
 
+## Environments
+
+Three pinned requirements files, split by concern (versions taken from the
+actual working SCC envs, Sep 2026): `requirements-inference.txt` (torch 2.11 /
+transformers 5.14 / vllm 0.26 — transformers must be >=5.x for qwen3_5),
+`requirements-training.txt` (LLaMA-Factory from source; beware CUDA-mismatched
+torchaudio), `requirements-datagen.txt` (CPU-side). Training and inference
+were run from SEPARATE envs — the MolmoWeb actor pins transformers 4.57.x
+while the Qwen3.5 RMs need >=5.x, so plan on two envs if you run both.
+
 ## Repo layout
 
 ```
@@ -140,6 +150,7 @@ data_generation/
 training/
   llamafactory/      arm_lora.yaml arm_merge.yaml scalar_rm_lora.yaml scalar_rm_eval.yaml
   custom_bt/         train_reward.py run_train_reward*.qsub chain_bt_run.sh
+requirements-{inference,training,datagen}.txt
 inference/
   selection_infer.py scalar_infer.py scalar_server.py selection_prompt.py
   templates/prm2_templates.json
