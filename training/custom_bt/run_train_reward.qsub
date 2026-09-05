@@ -1,0 +1,33 @@
+#!/bin/bash -l
+#$ -P ivc-ml
+#$ -l gpus=1
+#$ -l gpu_compute_capability=8.6
+#$ -l h_rt=48:00:00
+#$ -pe omp 3
+#$ -j y
+#$ -N train_reward
+#$ -o output/prm_offline_pilot/train_full/train_reward.log
+# Pointwise reward model (LoRA + value head). OBJECTIVE selects the loss:
+#   OBJECTIVE=bt          -> Bradley-Terry pairwise (default)
+#   OBJECTIVE=regression  -> Huber on the PRM scalar
+# Other knobs mirror the selector trainer (TRAIN_DATA/TRAIN_OUT/LORA_*/EPOCHS/SAVE_STEPS).
+set -uo pipefail
+PROJ=/projectnb/ivc-ml/piotrt/browser_agents/browser-environment; cd "$PROJ"
+SIF=/projectnb/ivc-ml/piotrt/sif/vllm-0.19.1.sif; PEFT_DIR="$PROJ/.peft_overlay"; HOST_HF=/projectnb/ivc-ml/SharedHuggingFaceCache
+module load singularity 2>/dev/null || true
+echo "[reward-train] OBJECTIVE=${OBJECTIVE:-bt} DATA=${TRAIN_DATA:-default} OUT=${TRAIN_OUT:-default} $(date)"
+singularity exec --nv -B /projectnb/ivc-ml:/projectnb/ivc-ml \
+  --env PYTHONUNBUFFERED=1 --env PYTHONPATH="$PROJ:$PEFT_DIR" --env HF_HOME="$HOST_HF" \
+  --env PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
+  --env XDG_CACHE_HOME=/projectnb/ivc-ml/piotrt/xdg_cache \
+  --env BASE_MODEL="${BASE_MODEL:-Qwen/Qwen3.5-4B}" \
+  --env TRAIN_DATA="${TRAIN_DATA:-output/prm_offline_pilot/train_full/reward_data.jsonl}" \
+  --env TRAIN_OUT="${TRAIN_OUT:-output/prm_offline_pilot/train_full/reward_bt}" \
+  --env OBJECTIVE="${OBJECTIVE:-bt}" --env MARGIN_EPS="${MARGIN_EPS:-0.05}" --env SOFT_K="${SOFT_K:-6.0}" \
+  --env MARGIN_SCALE="${MARGIN_SCALE:-0.0}" --env REWARD_L2="${REWARD_L2:-1e-3}" \
+  --env LORA_TARGETS="${LORA_TARGETS:-q_proj,k_proj,v_proj,o_proj}" --env LORA_EXCLUDE="${LORA_EXCLUDE:-}" \
+  --env LORA_R="${LORA_R:-16}" --env LORA_ALPHA="${LORA_ALPHA:-32}" \
+  --env BS="${BS:-1}" --env GA="${GA:-16}" --env EPOCHS="${EPOCHS:-2}" \
+  --env MAXLEN="${MAXLEN:-3072}" --env SAVE_STEPS="${SAVE_STEPS:-0}" --env SMOKE="${SMOKE:-0}" \
+  "$SIF" /usr/bin/python3 scripts/train_reward.py --objective "${OBJECTIVE:-bt}"
+echo "[reward-train] done $(date)"

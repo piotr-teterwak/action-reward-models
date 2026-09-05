@@ -1,0 +1,36 @@
+#!/bin/bash -l
+#$ -P ivc-ml
+#$ -l gpus=2
+#$ -l gpu_compute_capability=8.9
+#$ -l h_rt=48:00:00
+#$ -pe omp 4
+#$ -j y
+#$ -N mw_reward
+set -uo pipefail
+PROJ=/projectnb/ivc-ml/piotrt/browser_agents/browser-environment; cd "$PROJ"
+# MolmoWeb-4B (the actor backbone) as a value-head BT reward model. Runs in the molmoweb conda
+# env (transformers 4.57.x) -- the vllm SIF rejects MolmoWeb's processor. 2-GPU DDP (torchrun):
+# Molmo's image path is ~3x heavier than Qwen's, so single-GPU is too slow. Vision tower +
+# embeddings stay frozen (LORA_EXCLUDE) so Molmo2's in-place embed-merge doesn't break autograd.
+# 24h wall + SAVE_STEPS checkpoints -> resumes via RewardTrainer._load_from_checkpoint.
+eval "$(conda shell.bash hook)"; conda activate molmoweb
+export HF_HOME=/projectnb/ivc-ml/piotrt/hf_cache
+export XDG_CACHE_HOME=/projectnb/ivc-ml/piotrt/xdg_cache
+export PYTHONUNBUFFERED=1 PYTHONPATH="$PROJ"
+export BASE_MODEL="${BASE_MODEL:-allenai/MolmoWeb-4B}"
+export BASE_REVISION="${BASE_REVISION:-refs/pr/1}"
+export TRAIN_DATA="${TRAIN_DATA:-output/prm_offline_pilot/train_full/reward_data_score_prm.jsonl}"
+export TRAIN_OUT="${TRAIN_OUT:-output/prm_offline_pilot/train_full/reward_mw_prm_ep1}"
+export OBJECTIVE="${OBJECTIVE:-bt}" MARGIN_EPS="${MARGIN_EPS:-0.05}"
+export LORA_TARGETS="${LORA_TARGETS:-all-linear}"
+export LORA_EXCLUDE="${LORA_EXCLUDE:-.*(vision_backbone|image_vit|vit|image_pooling|image_projector).*}"
+export LORA_R="${LORA_R:-16}" LORA_ALPHA="${LORA_ALPHA:-32}"
+# DDP halves GA so BS1 x GA8 x 2GPU = eff-batch 16 (matched to the Qwen reward runs).
+export BS="${BS:-1}" GA="${GA:-8}" EPOCHS="${EPOCHS:-1}" MAX_STEPS="${MAX_STEPS:--1}"
+export MAXLEN="${MAXLEN:-3072}" SAVE_STEPS="${SAVE_STEPS:-500}" SMOKE="${SMOKE:-0}"
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+echo "[mw-reward] OUT=$TRAIN_OUT EPOCHS=$EPOCHS SMOKE=$SMOKE GA=$GA $(date)"
+echo "[mw-reward] transformers=$(python -c 'import transformers;print(transformers.__version__)')"
+python -m torch.distributed.run --nproc_per_node=2 --standalone \
+    scripts/train_reward.py --objective "$OBJECTIVE"
+echo "[mw-reward] done $(date)"

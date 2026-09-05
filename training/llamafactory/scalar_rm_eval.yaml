@@ -1,0 +1,49 @@
+### Scalar value-head RM: OpenWebRL-4B-SFT + BT pairwise loss on
+### GPT-5.5 selection preferences (chosen action vs rejected action).
+
+### model
+model_name_or_path: OpenWebRL/OpenWebRL-4B-SFT
+image_max_pixels: 262144
+trust_remote_code: true
+
+### method
+stage: rm
+do_train: false
+do_eval: true
+finetuning_type: lora
+adapter_name_or_path: /projectnb/ivc-ml/piotrt/CUA_evals/owrl_arm/ckpts/scalar_rm_lora
+lora_target: all
+lora_rank: 32
+lora_alpha: 64
+lora_dropout: 0.05
+freeze_vision_tower: true
+freeze_multi_modal_projector: true
+
+### dataset
+dataset_dir: /projectnb/ivc-ml/piotrt/CUA_evals/owrl_arm/scalar_rm
+media_dir: /projectnb/ivc-ml/piotrt/CUA_evals/owrl_arm/scalar_rm
+eval_dataset: owrl_scalar_rm_val
+template: qwen3_vl
+cutoff_len: 8192
+preprocessing_num_workers: 8
+dataloader_num_workers: 4
+
+### output
+output_dir: /projectnb/ivc-ml/piotrt/CUA_evals/owrl_arm/ckpts/scalar_rm_eval
+logging_steps: 10
+save_strategy: epoch
+plot_loss: true
+overwrite_output_dir: /projectnb/ivc-ml/piotrt/CUA_evals/owrl_arm/ckpts/scalar_rm_eval
+save_only_model: true
+report_to: none
+run_name: owrl-scalar-rm-lora
+
+### train
+num_train_epochs: 1.0
+learning_rate: 5.0e-5
+per_device_train_batch_size: 2
+per_device_eval_batch_size: 1
+gradient_accumulation_steps: 8
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+bf16: true
