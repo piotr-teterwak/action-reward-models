@@ -139,6 +139,19 @@ torchaudio), `requirements-datagen.txt` (CPU-side). Training and inference
 were run from SEPARATE envs — the MolmoWeb actor pins transformers 4.57.x
 while the Qwen3.5 RMs need >=5.x, so plan on two envs if you run both.
 
+**Serving checklist** (vLLM JIT-compiles kernels at startup; every one of
+these was independently fatal in a bare batch shell, in this order):
+1. `peft` + `safetensors` installed in the serving env (scalar path).
+2. `CUDA_HOME` set to a real CUDA >=12.8 install and `$CUDA_HOME/bin` on
+   PATH (**absolute paths** — HPC `module load` can silently no-op in
+   non-interactive shells; don't trust it).
+3. The conda/venv `bin` FIRST on PATH (vLLM's JIT needs `ninja` from it).
+4. `LD_LIBRARY_PATH` containing `$CUDA_HOME/lib64` (JIT-built kernels dlopen
+   `libcudart.so.12` at runtime).
+Both demo paths were verified end-to-end with real weights (scalar: HF
+adapter + value head scored 5 candidates; selection: vLLM-served ARM returned
+`{"selection": N}`) under exactly this environment.
+
 ## Repo layout
 
 ```
