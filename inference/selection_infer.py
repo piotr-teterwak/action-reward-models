@@ -43,8 +43,14 @@ def main():
     history = json.load(open(a.history)) if a.history else []
     img_bytes = open(a.image, "rb").read()
 
-    # one singleton cluster per candidate (CLUSTER_NO_DOM semantics)
-    clusters = [{"rep": c, "vote_count": 1, "cluster_key": str(i)} for i, c in enumerate(cands)]
+    # one singleton cluster per candidate (CLUSTER_NO_DOM semantics).
+    # The builder expects candidate OBJECTS with .molmo_action / .thought:
+    from types import SimpleNamespace
+    clusters = [
+        {"rep": SimpleNamespace(molmo_action=c["action"], thought=c.get("thought", "")),
+         "vote_count": 1, "cluster_key": str(i)}
+        for i, c in enumerate(cands)
+    ]
     messages = build_catts_vision_prompt_v2(a.task, history, a.url_page if hasattr(a, "url_page") else "",
                                             clusters, img_bytes)
 
