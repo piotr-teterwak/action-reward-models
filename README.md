@@ -33,7 +33,7 @@ across rows — never compare absolute numbers across rows without a re-judge.)
 
 **Models** (all judge-base **Qwen3.5-4B**, LoRA unless noted):
 
-| repo | type | era |
+| repo | type | actor |
 |---|---|---|
 | `PTeterwak/OpenWebRL-4B-SelectionARM` | selection (merged full model) | OpenWebRL |
 | `PTeterwak/OpenWebRL-4B-ScalarRM-LoRA` | BT scalar (adapter + `value_head.safetensors`) | OpenWebRL |
