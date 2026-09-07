@@ -111,33 +111,8 @@ out); `run_train_reward*.qsub` show the exact env/args used, and
   CLUSTER_NO_DOM=1 VISION_NO_COT=1`. **Prompt drift is the #1 way to get
   garbage numbers** — use this builder, don't approximate it.
 
-## Cross-cutting gotchas (earned the hard way)
 
-- **Coordinates are normalized [0,1000]** in candidate actions for both ARMs.
-  Feeding pixel coords silently degrades selection quality.
-- **Selection index is 1-based** in the `{"selection": N}` contract; parse
-  failures fall back to candidate 1 (do the same, it matters for parity).
-- **Candidate diversity is the fuel**: sample candidates at temp 0.7. Greedy
-  candidates collapse to near-duplicates and selection becomes a no-op
-  (~72% of steps have ≥2 genuinely distinct candidates at 0.7).
-- **The dedup question**: we do NOT dedup candidates before selection
-  (CLUSTER_NO_DOM=1 presents all 5). Strict-index metrics under-credit judges
-  when duplicates exist — use action-level agreement for analysis.
-- **Judges differ across eras** (gpt-5.2 / o4-mini / GPT-4.1 give spreads of
-  5–9 points on identical trajectories). Any new comparison table should
-  re-judge everything with one judge.
-- The scalar value head rides OUTSIDE the adapter weights — always ship
-  `value_head.{safetensors,pt}` next to the LoRA (both HF repos do).
 
-## Environments
-
-Three pinned requirements files, split by concern (versions taken from the
-actual working SCC envs, Sep 2026): `requirements-inference.txt` (torch 2.11 /
-transformers 5.14 / vllm 0.26 — transformers must be >=5.x for qwen3_5),
-`requirements-training.txt` (LLaMA-Factory from source; beware CUDA-mismatched
-torchaudio), `requirements-datagen.txt` (CPU-side). Training and inference
-were run from SEPARATE envs — the MolmoWeb actor pins transformers 4.57.x
-while the Qwen3.5 RMs need >=5.x, so plan on two envs if you run both.
 
 **Serving checklist** (vLLM JIT-compiles kernels at startup; every one of
 these was independently fatal in a bare batch shell, in this order):
