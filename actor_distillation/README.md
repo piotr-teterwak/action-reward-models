@@ -80,3 +80,12 @@ result on held-out generalization.
   Everything else in this directory is standalone against this repo.
 - The qsub wrappers keep their original SCC paths/envs as a faithful record —
   edit `PROJECT_DIR`/conda env for your cluster.
+
+**Verification (Sep 2026):** every stage was re-run from this directory with
+real weights and data after extraction — A: MolmoWeb-4B sampled 5 candidates
+for real states (≥4/5 parseable); B: the vLLM-served selection ARM returned
+valid `{"selection": N}` on 5/5 states (this test caught the
+`VISION_NO_COT=1` default now baked into the script); C + pre-check ran on
+B's actual output (60% off-plurality on the sample); D: SMOKE run took real
+gradient steps (28.6M trainable LoRA params, train loss 0.29 ≈ the original
+run's 0.31) and wrote the adapter.
