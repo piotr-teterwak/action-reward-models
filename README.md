@@ -111,6 +111,17 @@ out); `run_train_reward*.qsub` show the exact env/args used, and
   CLUSTER_NO_DOM=1 VISION_NO_COT=1`. **Prompt drift is the #1 way to get
   garbage numbers** — use this builder, don't approximate it.
 
+### Stage 4 (optional) — fold selection back into the actor (`actor_distillation/`)
+
+The full on-policy self-distillation loop (stages A–E): sample 5 from the
+current actor → judge picks 1 → SFT the actor on the winner → greedy n=1
+approaches best-of-5+judge. Two stage-B variants shipped: live selection-ARM
+(failed: −4.2pp, loop collapse) and offline PRM-argmax with a 0.7 quality
+floor (**worked: +8.7pp over baseline, +7.2pp over a random-SFT control,
+p≈0.001** — the entire best-of-5 gain folded into one greedy sample). See
+`actor_distillation/README.md` (pipeline) and `RESULTS.md` (numbers + the
+failure analysis).
+
 ## Cross-cutting gotchas (earned the hard way)
 
 - **Coordinates are normalized [0,1000]** in candidate actions for both ARMs.
@@ -167,6 +178,10 @@ requirements-{inference,training,datagen}.txt
 inference/
   selection_infer.py scalar_infer.py scalar_server.py selection_prompt.py
   templates/prm2_templates.json
+actor_distillation/
+  README.md RESULTS.md pilot_actor_infer.py run_selector_offline.py
+  onpolicy_precheck.py build_onpolicy_sft.py train_actor_sft.py
+  onpolicy_online.py onpolicy_{gen,select}.qsub run_train_actor_sft.qsub
 ```
 
 ## Provenance

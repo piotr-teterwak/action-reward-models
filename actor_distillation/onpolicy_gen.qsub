@@ -1,0 +1,21 @@
+#!/bin/bash -l
+#$ -P ivc-ml
+#$ -l gpus=1
+#$ -l gpu_compute_capability=8.6
+#$ -l h_rt=4:00:00
+#$ -pe omp 2
+#$ -j y
+#$ -N onpolicy_gen
+#$ -o output/onpolicy/round0/gen.log
+set -uo pipefail
+PROJ=/projectnb/ivc-ml/piotrt/browser_agents/browser-environment; cd "$PROJ"
+eval "$(conda shell.bash hook)"; conda activate molmoweb
+export HF_HOME=/projectnb/ivc-ml/SharedHuggingFaceCache/
+export XDG_CACHE_HOME=/projectnb/ivc-ml/piotrt/xdg_cache
+export PYTHONPATH="$PROJ:${PYTHONPATH:-}"
+export PILOT_TEMP=1.0 PILOT_TOP_P=1.0 PILOT_NCHUNKS=1 PILOT_CHUNK=0
+export PILOT_STATES=output/onpolicy/round0/states.jsonl
+export PILOT_OUT=output/onpolicy/round0/candidates.jsonl
+echo "[onpolicy-gen] base actor, 2k states, temp 1.0 $(date)"
+python scripts/pilot_actor_infer.py
+echo "[onpolicy-gen] done $(date)"

@@ -1,0 +1,24 @@
+#!/bin/bash -l
+#$ -P ivc-ml
+#$ -l gpus=1
+#$ -l gpu_compute_capability=8.6
+#$ -l h_rt=48:00:00
+#$ -pe omp 3
+#$ -j y
+#$ -N actor_sft
+#$ -o output/onpolicy/train_actor_sft.log
+# STAGE D: SFT MolmoWeb-4B (the actor) to generate the arbiter-selected action.
+# Runs in the molmoweb conda env (the actor needs molmo2 custom code, not the SIF).
+# Params via -v: TRAIN_DATA (stage-C jsonl), TRAIN_OUT, EPOCHS, LORA_*, etc.
+set -uo pipefail
+PROJECT_DIR=/projectnb/ivc-ml/piotrt/browser_agents/browser-environment; cd "$PROJECT_DIR"
+eval "$(conda shell.bash hook)"; conda activate molmoweb
+export HF_HOME=/projectnb/ivc-ml/SharedHuggingFaceCache/
+export PYTHONPATH="$PROJECT_DIR:${PYTHONPATH:-}"
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+export TRAIN_DATA="${TRAIN_DATA:-output/onpolicy/round0/actor_sft.jsonl}"
+export TRAIN_OUT="${TRAIN_OUT:-output/onpolicy/round0/actor_lora}"
+mkdir -p "$TRAIN_OUT"
+echo "[actor-sft] DATA=$TRAIN_DATA OUT=$TRAIN_OUT EPOCHS=${EPOCHS:-1} $(date)"
+python scripts/train_actor_sft.py
+echo "[actor-sft] done $(date)"
