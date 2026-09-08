@@ -16,6 +16,10 @@ for k, v in {
     "CATTS_VISION_PROMPT_V2": "1", "CATTS_VISION_COLORED": "1", "CATTS_VISION_MAX_TOKENS": "16384",
     "VISION_NO_SOM": "1", "VISION_ABLATE_DOM": "1", "VISION_ABLATE_VOTES": "1",
     "NORMALIZE_COORDS": "1", "CLUSTER_NO_DOM": "1",
+    # this repo's selection_prompt.py keeps only the no-CoT prompt variant
+    # (the with-CoT branch was removed in the repro extraction), so default it
+    # on — production left it to the caller's env (onpolicy_select.qsub).
+    "VISION_NO_COT": "1",
 }.items():
     os.environ.setdefault(k, v)
 

@@ -29,6 +29,14 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "inferen
 from selection_prompt import catts_vision_select_v2, ArbiterCandidate  # repo-canonical builder
 from eval.agents import MolmoWebAgent   # for _parse_molmo_output (action_str parity)
 
+# selector prompt config (this repo's builder supports only the no-CoT variant)
+for _k, _v in {
+    "CATTS_VISION_PROMPT_V2": "1", "CATTS_VISION_COLORED": "1", "CATTS_VISION_MAX_TOKENS": "16384",
+    "VISION_NO_SOM": "1", "VISION_ABLATE_DOM": "1", "VISION_ABLATE_VOTES": "1",
+    "NORMALIZE_COORDS": "1", "CLUSTER_NO_DOM": "1", "VISION_NO_COT": "1",
+}.items():
+    os.environ.setdefault(_k, _v)
+
 ACTOR_MODEL = os.environ.get("ACTOR_MODEL", "allenai/MolmoWeb-4B")
 REVISION = os.environ.get("ACTOR_REVISION", "refs/pr/1")
 ARBITER_DIR = os.environ.get("ARBITER_DIR", "output/prm_offline_pilot/train_full/merged_alllinear_3894")
