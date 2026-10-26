@@ -1,0 +1,68 @@
+diff --git a/openwebrl/generate_browser.py b/openwebrl/generate_browser.py
+index 100d47e..438c2c4 100644
+--- a/openwebrl/generate_browser.py
++++ b/openwebrl/generate_browser.py
+@@ -998,6 +998,33 @@ async def _run_inference_step(
+     return response_text, new_tokens, new_log_probs, finish_type
+ 
+ 
++
++async def _maybe_arbitered_inference(url, text, sampling_params, image_data,
++                                     timeout_secs=None, task_id="", step=-1):
++    """OWRL_ARBITER=1: n-candidate sampling + frontier catts_vision selection
++    (openwebrl.frontier_arbiter); otherwise a plain single inference step.
++    Returns the same (response, tokens, logprobs, finish_type) tuple — the
++    WINNER's tuple, so token/logprob bookkeeping downstream stays consistent."""
++    if os.environ.get("OWRL_ARBITER") != "1":
++        return await _run_inference_step(url, text, sampling_params, image_data,
++                                         timeout_secs=timeout_secs)
++    from openwebrl import frontier_arbiter as _fa
++    n = int(os.environ.get("OWRL_ARBITER_N", 5))
++    sp = dict(sampling_params or {})
++    sp["temperature"] = float(os.environ.get("OWRL_ARBITER_TEMP", 0.7))
++    results = await asyncio.gather(
++        *[_run_inference_step(url, text, sp, image_data, timeout_secs=timeout_secs)
++          for _ in range(n)],
++        return_exceptions=True)
++    ok = [r for r in results if not isinstance(r, BaseException)]
++    if not ok:
++        raise results[0]
++    candidates = [_fa.split_think(r[0]) for r in ok]
++    current_img = image_data[-1] if image_data else ""
++    idx, reasoning, record = await _fa.select(text, current_img, candidates)
++    _fa.log_sidecar(task_id, step, candidates, idx, reasoning, record)
++    return ok[idx]
++
+ def _ensure_im_end_w_new_line(response_text: str, new_tokens: list[int], new_logprobs: list[float]) -> str:
+     """
+     Ensure the response text and tokens end with "<|im_end|>\n".
+@@ -1488,12 +1515,13 @@ async def _generate_trajectory_sample_impl(
+                 multimodal_train_inputs_buffer.append(step_mm_train)
+ 
+             # 6. Run inference ---------------------------------------------
+-            llm_response, new_tokens, new_logprobs, finish_type = await _run_inference_step(
++            llm_response, new_tokens, new_logprobs, finish_type = await _maybe_arbitered_inference(
+                 url,
+                 cat_all_msgs,
+                 sampling_params,
+                 all_imgs,
+                 timeout_secs=getattr(args, "inference_step_timeout_secs", None),
++                task_id=task_id, step=step,
+             )
+             # --------------------------------------------------------------
+             if _should_sample_llm_output(args):
+@@ -1821,12 +1849,13 @@ async def _generate_turn_sample_impl(
+             turn_sample.multimodal_train_inputs = mm_train
+ 
+             # 7. Run inference ---------------------------------------------
+-            llm_response, new_tokens, new_logprobs, finish_type = await _run_inference_step(
++            llm_response, new_tokens, new_logprobs, finish_type = await _maybe_arbitered_inference(
+                 url,
+                 input_text,
+                 sampling_params,
+                 img_list,
+                 timeout_secs=getattr(args, "inference_step_timeout_secs", None),
++                task_id=task_id, step=step,
+             )
+             # --------------------------------------------------------------
+             if _should_sample_llm_output(args):

@@ -103,6 +103,14 @@ out); `run_train_reward*.qsub` show the exact env/args used, and
 - `scalar_server.py` — production-grade batched `/score` endpoint (the one
   the eval harnesses call), PRM'-format prompts for the MolmoWeb-era model
   (`templates/prm2_templates.json` is byte-exact to its training data).
+- `openwebrl/` — the arbiter ported to the
+  [OpenWebRL](https://github.com/OpenWebRL/OpenWebRL) harness: copy
+  `frontier_arbiter.py` into upstream's `openwebrl/` package and apply
+  `generate_browser.patch` (the n-sample interception hook). Enable with
+  `OWRL_ARBITER=1`; `OWRL_ARBITER_MODEL` picks a frontier judge, or point
+  `OWRL_ARBITER_URL`/`OWRL_ARBITER_API_KEY` at a locally served selection ARM.
+  (The `OWRL_SCALAR_URL` branch inside is experimental; its `/score` server
+  route is not implemented here — leave it unset.)
 - `selection_prompt.py` — the **canonical selection prompt builder**
   (catts_vision v2: pure vision, no DOM/SoM/votes/CoT, single shot). Both
   selection ARMs were trained on prompts from this builder with:
@@ -150,6 +158,7 @@ requirements-{inference,training,datagen}.txt
 inference/
   selection_infer.py scalar_infer.py scalar_server.py selection_prompt.py
   templates/prm2_templates.json
+  openwebrl/         frontier_arbiter.py generate_browser.patch
 actor_distillation/
   README.md RESULTS.md pilot_actor_infer.py run_selector_offline.py
   onpolicy_precheck.py build_onpolicy_sft.py train_actor_sft.py
